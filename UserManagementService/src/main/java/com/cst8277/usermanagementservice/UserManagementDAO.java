@@ -53,6 +53,7 @@ public class UserManagementDAO {
 					user = new User();
 					user.setUserId(resultSet.getInt("user_id"));
 					user.setUsername(resultSet.getString("username"));
+					user.setPassword(resultSet.getString("password"));
 				}
 			}
 
