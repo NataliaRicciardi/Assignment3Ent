@@ -1,43 +1,129 @@
 package com.cst8277.subscriptionservice;
 
-import com.cst8277.DatabaseConnection;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.sql.*;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.UUID;
+
 
 public class SubscriptionDAO {
-    private final DatabaseConnection dbConnection;
+    private Connection dbConnection;
 
-    public SubscriptionDAO() {
-        this.dbConnection = new DatabaseConnection("subscription_service", "admin");
+    public Connection getConnection() {
+        String url = "jdbc:mysql://127.0.0.1:3306/messages";
+        String username = "root";
+        String password = "passw";
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            dbConnection = DriverManager.getConnection(url, username, password);
+            System.out.println("Connection successful!");
+        }
+        catch (ClassNotFoundException e) {
+            System.err.println("MySQL Driver not found.");
+            e.printStackTrace();
+        }
+        catch (SQLException e) {
+            System.err.println("Failed to connect to the database.");
+            e.printStackTrace();
+        }
+        return dbConnection;
     }
 
-    public List<Subscription> getActiveSubscriptions() {
-        String query = "SELECT * FROM active_subscriptions";
-        List<Subscription> subscriptions = new ArrayList<>();
-
-        try (Connection connection = dbConnection.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(query);
-             ResultSet resultSet = preparedStatement.executeQuery()) {
-
-            while (resultSet.next()) {
-                Subscription subscription = new Subscription();
-                subscription.setSubscriberId(resultSet.getInt("subscriber_id"));
-                subscription.setSubscriberName(resultSet.getString("subscriber_name"));
-                subscription.setProducerId(resultSet.getInt("producer_id"));
-                subscription.setProducerName(resultSet.getString("producer_name"));
-                subscriptions.add(subscription);
+    public List<Subscriber> getSubscribersForProducer(UUID producerId) {
+        String query = """
+                    SELECT subscribers.id, subscribers.comment
+                    FROM subscribers
+                    JOIN subscriptions ON subscribers.id = subscriptions.subscribers_id
+                    WHERE subscriptions.producers_id = ?
+                """;
+        List<Subscriber> subscribers = new ArrayList<>();
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setBytes(1, convertUUIDToBytes(producerId));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Subscriber subscriber = new Subscriber(
+                            rs.getBytes("id"),
+                            rs.getString("comment")
+                    );
+                    subscribers.add(subscriber);
+                }
             }
-
         } catch (SQLException e) {
-            System.err.println("Error fetching subscriptions: " + e.getMessage());
+            e.printStackTrace();
         }
+        return subscribers;
+    }
 
-        return subscriptions;
+    private byte[] convertUUIDToBytes(UUID uuid) {
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[16]);
+        buffer.putLong(uuid.getMostSignificantBits());
+        buffer.putLong(uuid.getLeastSignificantBits());
+        return buffer.array();
+    }
+
+    public List<Producer> getProducersForSubscriber(UUID subscriberId) {
+        String query = """
+        SELECT producers.id, producers.comment
+        FROM producers
+        JOIN subscriptions ON producers.id = subscriptions.producers_id
+        WHERE subscriptions.subscribers_id = ?
+    """;
+        List<Producer> producers = new ArrayList<>();
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setBytes(1, convertUUIDToBytes(subscriberId));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Producer producer = new Producer(
+                            rs.getBytes("id"),
+                            rs.getString("comment")
+                    );
+                    producers.add(producer);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return producers;
+    }
+
+    public boolean addSubscription(UUID producerId, UUID subscriberId) {
+        String query = "INSERT INTO subscriptions (producers_id, subscribers_id) VALUES (?, ?)";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setBytes(1, convertUUIDToBytes(producerId));
+            stmt.setBytes(2, convertUUIDToBytes(subscriberId));
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean removeSubscription(UUID producerId, UUID subscriberId) {
+        String query = "DELETE FROM subscriptions WHERE producers_id = ? AND subscribers_id = ?";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setBytes(1, convertUUIDToBytes(producerId));
+            stmt.setBytes(2, convertUUIDToBytes(subscriberId));
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean isSubscribed(UUID producerId, UUID subscriberId) {
+        String query = "SELECT 1 FROM subscriptions WHERE producers_id = ? AND subscribers_id = ?";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setBytes(1, convertUUIDToBytes(producerId));
+            stmt.setBytes(2, convertUUIDToBytes(subscriberId));
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
 }
