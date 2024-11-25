@@ -53,6 +53,26 @@ public class MessagingServiceApplication {
                 : ResponseEntity.ok(messages);
     }
 
+    @DeleteMapping("/{messageId}")
+    public ResponseEntity<?> deleteMessage(@PathVariable("messageId") String messageId) {
+        try {
+            UUID messageUuid = UUID.fromString(messageId);
+
+            // Attempt to delete the message
+            boolean success = messagingDAO.deleteMessage(messageUuid);
+
+            return success
+                    ? ResponseEntity.ok("Message deleted successfully.")
+                    : ResponseEntity.status(404).body("Message not found.");
+        } catch (IllegalArgumentException e) {
+            // Handle invalid UUID format
+            return ResponseEntity.badRequest().body("Invalid message ID format.");
+        } catch (Exception e) {
+            // Catch any unexpected errors
+            return ResponseEntity.status(500).body("An error occurred while deleting the message.");
+        }
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(MessagingServiceApplication.class, args);
     }

@@ -19,17 +19,34 @@ public class UserManagementServiceApplication {
 	}
 
 	@PostMapping("/register")
-	public ResponseEntity<?> registerUser(@RequestBody User user) {
+	public ResponseEntity<?> registerUser(@RequestBody UserDTO userDTO) {
+		if (userDTO.getName() == null || userDTO.getEmail() == null || userDTO.getPassword() == null) {
+			return ResponseEntity.status(400).body("Invalid user data");
+		}
+
+		// Convert UserDTO to User object
+		User user = new User();
+		user.setId(UUID.randomUUID()); // Generate new UUID for the user
+		user.setName(userDTO.getName());
+		user.setEmail(userDTO.getEmail());
+		user.setPassword(userDTO.getPassword());
+		user.setCreated((int) (System.currentTimeMillis() / 1000)); // current timestamp
+
+		// Add the user to the database
 		if (userManagementDAO.addUser(user)) {
 			return ResponseEntity.status(201).body("User registered successfully");
 		} else {
-			return ResponseEntity.status(400).body("Error registering user");
+			return ResponseEntity.status(500).body("Error registering user");
 		}
 	}
 
 	@DeleteMapping("/delete")
-	public ResponseEntity<?> deleteUser (@RequestBody UUID user_id) {
-		return ResponseEntity.status(200).body("");
+	public ResponseEntity<?> deleteUser (@RequestBody UUID userId) {
+		if (userManagementDAO.deleteUser(userId)) {
+			return ResponseEntity.status(200).body("User deleted successfully");
+		} else {
+			return ResponseEntity.status(400).body("Error deleting user");
+		}
 	}
 
 	@GetMapping("/getAllUsers")
@@ -38,13 +55,18 @@ public class UserManagementServiceApplication {
 	}
 
 	@GetMapping("/getById")
-	public ResponseEntity<?> getUserById(@RequestBody UUID user_id) {
-		return ResponseEntity.status(200).body("");
+	public ResponseEntity<?> getUserById(@RequestBody UUID userId) {
+		User user = userManagementDAO.getUserById(userId);
+		if (user != null) {
+			return ResponseEntity.status(200).body(user);
+		} else {
+			return ResponseEntity.status(404).body("User not found");
+		}
 	}
 
 	@GetMapping("getRoles")
 	public ResponseEntity<?> getAllRoles() {
-		return ResponseEntity.status(200).body("");
+		return ResponseEntity.status(200).body(userManagementDAO.getAllRoles());
 	}
 
 	public static void main(String[] args) {
