@@ -1,5 +1,6 @@
 package com.cst8277.messagingservice;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.ResponseEntity;
@@ -15,8 +16,9 @@ public class MessagingServiceApplication {
 
     private final MessagingDAO messagingDAO;
 
-    public MessagingServiceApplication() {
-        this.messagingDAO = new MessagingDAO();
+    @Autowired
+    public MessagingServiceApplication(MessagingDAO messagingDAO) {
+        this.messagingDAO = messagingDAO;
     }
 
     @PostMapping

@@ -1,5 +1,6 @@
 package com.cst8277.usermanagementservice;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.ResponseEntity;
@@ -14,8 +15,9 @@ public class UserManagementServiceApplication {
 
 	UserManagementDAO userManagementDAO;
 
-	public UserManagementServiceApplication() {
-		this.userManagementDAO = new UserManagementDAO();
+	@Autowired
+	public UserManagementServiceApplication(UserManagementDAO userManagementDAO) {
+		this.userManagementDAO = userManagementDAO;
 	}
 
 	@PostMapping("/register")

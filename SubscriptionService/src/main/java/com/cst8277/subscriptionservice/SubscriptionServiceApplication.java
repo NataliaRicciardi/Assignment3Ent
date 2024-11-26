@@ -1,5 +1,6 @@
 package com.cst8277.subscriptionservice;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.ResponseEntity;
@@ -15,8 +16,9 @@ public class SubscriptionServiceApplication {
 
     private final SubscriptionDAO subscriptionDAO;
 
-    public SubscriptionServiceApplication() {
-        this.subscriptionDAO = new SubscriptionDAO();
+    @Autowired
+    public SubscriptionServiceApplication(SubscriptionDAO subscriptionDAO) {
+        this.subscriptionDAO = subscriptionDAO;
     }
 
     @PostMapping("/{producer_id}")
