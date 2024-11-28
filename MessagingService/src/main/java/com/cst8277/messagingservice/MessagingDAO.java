@@ -36,6 +36,36 @@ public class MessagingDAO {
         return dbConnection;
     }
 
+    public List<Message> getAllMessages() {
+        List<Message> messages = new ArrayList<>();
+        String query = """
+        SELECT id, content, created, producer_id
+        FROM messages
+    """;
+
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    UUID messageId = convertBytesToUUID(rs.getBytes("id"));
+                    String content = rs.getString("content");
+                    int created = rs.getInt("created");
+                    UUID producerId = convertBytesToUUID(rs.getBytes("producer_id"));
+
+                    // Convert UNIX timestamp to ZonedDateTime
+                    ZonedDateTime createdDateTime = Instant.ofEpochSecond(created)
+                            .atZone(ZoneId.systemDefault());
+
+                    // Add message to the list
+                    messages.add(new Message(messageId, content, createdDateTime, producerId));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return messages;
+    }
+
     public List<Message> getMessagesForProducer(UUID producerId) {
         List<Message> messages = new ArrayList<>();
         String query = """

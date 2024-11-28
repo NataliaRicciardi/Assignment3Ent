@@ -35,6 +35,16 @@ public class MessagingServiceApplication {
                 : ResponseEntity.status(500).body("Failed to post message.");
     }
 
+    @GetMapping("/getAllMessages")
+    public ResponseEntity<List<Message>> getAllMessages() {
+        List<Message> messages = messagingDAO.getAllMessages();
+
+        return messages.isEmpty()
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.ok(messages);
+    }
+
+
     @GetMapping("/producer/{producerId}")
     public ResponseEntity<List<Message>> getMessagesForProducer(@PathVariable("producerId") String producerId) {
         UUID producerUuid = UUID.fromString(producerId);
