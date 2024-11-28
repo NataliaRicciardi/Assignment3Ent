@@ -66,7 +66,7 @@ public class MessagingDAO {
         return messages;
     }
 
-    public List<Message> getMessagesForProducer(UUID producerId) {
+    public List<Message> getMessagesForProducer(String producerId) {
         List<Message> messages = new ArrayList<>();
         String query = """
             SELECT id, content, created
@@ -75,18 +75,21 @@ public class MessagingDAO {
         """;
 
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setBytes(1, convertUUIDToBytes(producerId));
+            // Convert the producerId (String) to a UUID and then to bytes
+            UUID producerUuid = UUID.fromString(producerId);
+            stmt.setBytes(1, convertUUIDToBytes(producerUuid));
+
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     UUID messageId = convertBytesToUUID(rs.getBytes("id"));
                     String content = rs.getString("content");
                     int created = rs.getInt("created");
 
-                    //Convert UNIX timestamp
+                    // Convert UNIX timestamp
                     ZonedDateTime createdDateTime = Instant.ofEpochSecond(created)
                             .atZone(ZoneId.systemDefault());
 
-                    messages.add(new Message(messageId, content, createdDateTime, null));
+                    messages.add(new Message(messageId, content, createdDateTime, producerUuid));
                 }
             }
         } catch (SQLException e) {
@@ -96,17 +99,19 @@ public class MessagingDAO {
         return messages;
     }
 
-    public List<Message> getMessagesForSubscriber(UUID subscriberId) {
+    public List<Message> getMessagesForSubscriber(String subscriberId) {
         List<Message> messages = new ArrayList<>();
         String query = """
         SELECT m.id, m.content, m.created, m.producer_id
         FROM messages m
-        JOIN subscriptions s ON m.producer_id = s.producer_id
-        WHERE s.subscriber_id = ?
+        JOIN subscriptions s ON m.producer_id = s.producers_id
+        WHERE s.subscribers_id = ?
     """;
 
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setBytes(1, convertUUIDToBytes(subscriberId));
+            // Convert the subscriberId string to UUID and then to bytes
+            UUID subscriberUuid = UUID.fromString(subscriberId);
+            stmt.setBytes(1, convertUUIDToBytes(subscriberUuid));
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -115,11 +120,11 @@ public class MessagingDAO {
                     int created = rs.getInt("created");
                     UUID producerId = convertBytesToUUID(rs.getBytes("producer_id"));
 
-                    //Convert UNIX timestamp
+                    // Convert UNIX timestamp to ZonedDateTime
                     ZonedDateTime createdDateTime = Instant.ofEpochSecond(created)
                             .atZone(ZoneId.systemDefault());
 
-                    // message to list
+                    // Add message to the list
                     messages.add(new Message(messageId, content, createdDateTime, producerId));
                 }
             }

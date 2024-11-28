@@ -47,8 +47,8 @@ public class MessagingServiceApplication {
 
     @GetMapping("/producer/{producerId}")
     public ResponseEntity<List<Message>> getMessagesForProducer(@PathVariable("producerId") String producerId) {
-        UUID producerUuid = UUID.fromString(producerId);
-        List<Message> messages = messagingDAO.getMessagesForProducer(producerUuid);
+
+        List<Message> messages = messagingDAO.getMessagesForProducer(producerId);
 
         return messages.isEmpty()
                 ? ResponseEntity.noContent().build()
@@ -57,8 +57,8 @@ public class MessagingServiceApplication {
 
     @GetMapping("/subscriber/{subscriberId}")
     public ResponseEntity<List<Message>> getMessagesForSubscriber(@PathVariable("subscriberId") String subscriberId) {
-        UUID subscriberUuid = UUID.fromString(subscriberId);
-        List<Message> messages = messagingDAO.getMessagesForSubscriber(subscriberUuid);
+
+        List<Message> messages = messagingDAO.getMessagesForSubscriber(subscriberId);
 
         return messages.isEmpty()
                 ? ResponseEntity.noContent().build()
