@@ -133,7 +133,7 @@ public class UserManagementDAO {
 				userStmt.setString(3, user.getEmail());
 				userStmt.setString(4, user.getPassword());
 				userStmt.setInt(5, user.getCreated());
-				userStmt.setBytes(6, convertUUIDToBytes(user.getLastVisitId()));
+				userStmt.setBytes(6, null);
 				userStmt.executeUpdate();
 			}
 
